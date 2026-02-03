@@ -26,10 +26,11 @@ export function formatInboundBodyWithSenderMeta(params: { body: string; ctx: Msg
     return body;
   }
 
-  return `${body}\n[from: ${senderLabel}]`;
+  return `${body}\n[${senderLabel}]`;
 }
 
 function hasSenderMetaLine(body: string, ctx: MsgContext): boolean {
+  // Check for legacy [from: ...] format
   if (/(^|\n)\[from:/i.test(body)) {
     return true;
   }
@@ -45,6 +46,11 @@ function hasSenderMetaLine(body: string, ctx: MsgContext): boolean {
   }
   return candidates.some((candidate) => {
     const escaped = escapeRegExp(candidate);
+    // Check for new format: sender label on its own line in brackets [Alice (A1)]
+    const bracketPattern = new RegExp(`(^|\\n)\\[${escaped}\\]`, "i");
+    if (bracketPattern.test(body)) {
+      return true;
+    }
     // Envelope bodies look like "[Signal ...] Alice: hi".
     // Treat the post-header sender prefix as already having sender metadata.
     const pattern = new RegExp(`(^|\\n|\\]\\s*)${escaped}:\\s`, "i");

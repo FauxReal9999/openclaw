@@ -109,9 +109,7 @@ describe("formatInboundBodyWithSenderMeta", () => {
 
   it("appends a sender meta line for non-direct messages", () => {
     const ctx: MsgContext = { ChatType: "group", SenderName: "Alice", SenderId: "A1" };
-    expect(formatInboundBodyWithSenderMeta({ ctx, body: "[X] hi" })).toBe(
-      "[X] hi\n[from: Alice (A1)]",
-    );
+    expect(formatInboundBodyWithSenderMeta({ ctx, body: "[X] hi" })).toBe("[X] hi\n[Alice (A1)]");
   });
 
   it("prefers SenderE164 in the label when present", () => {
@@ -121,22 +119,27 @@ describe("formatInboundBodyWithSenderMeta", () => {
       SenderId: "bob@s.whatsapp.net",
       SenderE164: "+222",
     };
-    expect(formatInboundBodyWithSenderMeta({ ctx, body: "[X] hi" })).toBe(
-      "[X] hi\n[from: Bob (+222)]",
-    );
+    expect(formatInboundBodyWithSenderMeta({ ctx, body: "[X] hi" })).toBe("[X] hi\n[Bob (+222)]");
   });
 
   it("appends with a real newline even if the body contains literal \\n", () => {
     const ctx: MsgContext = { ChatType: "group", SenderName: "Bob", SenderId: "+222" };
     expect(formatInboundBodyWithSenderMeta({ ctx, body: "[X] one\\n[X] two" })).toBe(
-      "[X] one\\n[X] two\n[from: Bob (+222)]",
+      "[X] one\\n[X] two\n[Bob (+222)]",
     );
   });
 
-  it("does not duplicate a sender meta line when one is already present", () => {
+  it("does not duplicate a sender meta line when legacy format is present", () => {
     const ctx: MsgContext = { ChatType: "group", SenderName: "Alice", SenderId: "A1" };
     expect(formatInboundBodyWithSenderMeta({ ctx, body: "[X] hi\n[from: Alice (A1)]" })).toBe(
       "[X] hi\n[from: Alice (A1)]",
+    );
+  });
+
+  it("does not duplicate a sender meta line when new format is present", () => {
+    const ctx: MsgContext = { ChatType: "group", SenderName: "Alice", SenderId: "A1" };
+    expect(formatInboundBodyWithSenderMeta({ ctx, body: "[X] hi\n[Alice (A1)]" })).toBe(
+      "[X] hi\n[Alice (A1)]",
     );
   });
 
@@ -275,7 +278,7 @@ describe("initSessionState sender meta", () => {
       commandAuthorized: true,
     });
 
-    expect(result.sessionCtx.BodyStripped).toBe("[WhatsApp 123@g.us] ping\n[from: Bob (+222)]");
+    expect(result.sessionCtx.BodyStripped).toBe("[WhatsApp 123@g.us] ping\n[Bob (+222)]");
   });
 
   it("does not inject sender meta for direct chats", async () => {
